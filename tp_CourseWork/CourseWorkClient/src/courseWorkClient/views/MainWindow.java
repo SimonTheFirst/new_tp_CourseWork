@@ -206,7 +206,7 @@ public class MainWindow extends JFrame {
 	{
 		DataBaseInterface dbInterface = new DataBaseInterface();
 		String sql_lanes = "SELECT DISTINCT name FROM coursework.lane";
-		String sql_dates = "SELECT DISTINCT (CONVERT(lane.date, DATE)) FROM coursework.lane ORDER BY lane.date";
+		String sql_dates = "SELECT DISTINCT (CONVERT(lane.date, DATE)) FROM coursework.lane ORDER BY CONVERT(lane.date, DATE)";
 		String sql_weather = "SELECT DISTINCT precipType FROM coursework.weather";
 		String sql_timeOfDay = "SELECT DISTINCT timeOfDay from coursework.weather ";
 		try
@@ -366,6 +366,11 @@ public class MainWindow extends JFrame {
 		return series;
 	}	
 	
+	private double countApprPoint(double[] mult, double a)
+	{
+		return mult[2]*a*a+mult[1]*a+mult[0];
+	}
+	
 	private void plot()
 	{
 		DataBaseInterface dbInterface = new DataBaseInterface();
@@ -379,9 +384,16 @@ public class MainWindow extends JFrame {
 			
 			XYSeries apprser = new XYSeries("approximation");
 			
-			for(double i = series.getMinX();i<=series.getMaxX();i+=500) {
-				apprser.add(i, (polinom[2]*i*i+polinom[1]*i)+polinom[0]);
+			double minX = series.getMinX(), 
+					maxX = series.getMaxX(),
+					step = (maxX-minX)/9;
+			
+			apprser.add(minX, countApprPoint(polinom, minX));
+			for(double i = minX + step;i<maxX;i+=step) {
+				apprser.add(i, countApprPoint(polinom, i));
 			}
+			apprser.add(maxX, countApprPoint(polinom, maxX));
+			
 			seriesCollection.addSeries(apprser);
 			seriesCollection.addSeries(series);
 			
