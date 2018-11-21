@@ -1,2 +1,4 @@
 .DS_Store
-DataBaseInterface.java
+/DataBaseInterface.java
+*.classpath
+*.jar
