@@ -46,8 +46,8 @@ import javax.swing.JCheckBox;
 public class MainWindow extends JFrame {
 
 	private JPanel contentPane;
-	private JPanel pDeps;
-	private JPanel pNormalDep;
+	private JPanel pDep1;
+	private JPanel pDep2;
 	private JComboBox<String> cmbbxChooseLane;
 	private JComboBox<Date> cmbbxChooseDate;
 	private JComboBox<Integer> cmbbxChooseTimeFirst;
@@ -89,10 +89,10 @@ public class MainWindow extends JFrame {
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 
-		pDeps = new JPanel();
-		pDeps.setBackground(Color.GRAY);
-		pNormalDep = new JPanel();
-		pNormalDep.setBackground(Color.GRAY);
+		pDep1 = new JPanel();
+		pDep1.setBackground(Color.GRAY);
+		pDep2 = new JPanel();
+		pDep2.setBackground(Color.GRAY);
 
 		cmbbxChooseLane = new JComboBox<String>();
 		cmbbxChooseDate = new JComboBox<Date>();
@@ -133,9 +133,9 @@ public class MainWindow extends JFrame {
 							.addContainerGap())
 						.addGroup(gl_contentPane.createSequentialGroup()
 							.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING)
-								.addComponent(pNormalDep, GroupLayout.DEFAULT_SIZE, 812, Short.MAX_VALUE)
+								.addComponent(pDep2, GroupLayout.DEFAULT_SIZE, 812, Short.MAX_VALUE)
 								.addGroup(gl_contentPane.createSequentialGroup()
-									.addComponent(pDeps, GroupLayout.DEFAULT_SIZE, 811, Short.MAX_VALUE)
+									.addComponent(pDep1, GroupLayout.DEFAULT_SIZE, 811, Short.MAX_VALUE)
 									.addGap(1)))
 							.addGap(37))))
 		);
@@ -153,12 +153,12 @@ public class MainWindow extends JFrame {
 						.addComponent(cmbbxChooseWeather, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 						.addComponent(cmbbxChooseDependancy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addGap(18)
-					.addComponent(pDeps, GroupLayout.DEFAULT_SIZE, 337, Short.MAX_VALUE)
+					.addComponent(pDep1, GroupLayout.DEFAULT_SIZE, 337, Short.MAX_VALUE)
 					.addGap(18)
-					.addComponent(pNormalDep, GroupLayout.PREFERRED_SIZE, 313, GroupLayout.PREFERRED_SIZE)
+					.addComponent(pDep2, GroupLayout.DEFAULT_SIZE, 313, Short.MAX_VALUE)
 					.addGap(47))
 		);
-		pDeps.setLayout(new BorderLayout(0, 0));
+		pDep1.setLayout(new BorderLayout(0, 0));
 		contentPane.setLayout(gl_contentPane);
 		
 		plot();
@@ -205,6 +205,12 @@ public class MainWindow extends JFrame {
 				}
 			}
 		});
+		
+		cmbbxChooseDependancy.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				plot();
+			}
+		});
 	}
 
 	//*Method that fills all combo boxes**
@@ -249,6 +255,8 @@ public class MainWindow extends JFrame {
 			pstmt.close();
 			rs.close();
 			
+			cmbbxChooseDependancy.addItem("Occupancy(time)");
+			cmbbxChooseDependancy.addItem("Headway(speed)");		
 		}
 		catch(SQLException e)
 		{
@@ -369,7 +377,7 @@ public class MainWindow extends JFrame {
 	}
 
 	//*Method that executes sql query and creates dataset from resultset**
-	private XYSeries getDataSetXY(String sql, DataBaseInterface dbInterface)
+	private XYSeries getDataSetXY(String sql, DataBaseInterface dbInterface, boolean f)
 	{
 		XYSeries series = new XYSeries("Dependency");
 		byte i = 3;
@@ -401,7 +409,13 @@ public class MainWindow extends JFrame {
 			while (rs.next())
 			{
 				hasRows = true;
-				series.add(rs.getFloat(1), rs.getFloat(2));
+				if (!f)
+				{
+					float speed = rs.getFloat(1)*1000/3600;
+					series.add(speed, rs.getFloat(2)*speed);
+				}
+				else
+					series.add(rs.getFloat(1), rs.getFloat(2));
 			}
 			if(!hasRows)
 				JOptionPane.showMessageDialog(null, "No data for conditions you've selected", "Oops", JOptionPane.INFORMATION_MESSAGE);
@@ -463,11 +477,11 @@ public class MainWindow extends JFrame {
 		return mult[2]*a*a+mult[1]*a+mult[0];
 	}
 	
-	private void plotXY()
+	private void plotXY(String x, String y, boolean f)
 	{
 		DataBaseInterface dbInterface = new DataBaseInterface();
-		String sql = buildSqlQuery("occupancy","volume");
-		XYSeries series = getDataSetXY(sql, dbInterface);
+		String sql = buildSqlQuery(x,y);
+		XYSeries series = getDataSetXY(sql, dbInterface, f);
 		if (!series.isEmpty())
 		{
 			XYSeriesCollection seriesCollection= new XYSeriesCollection();
@@ -487,13 +501,23 @@ public class MainWindow extends JFrame {
 			apprser.add(maxX, countApprPoint(polinom, maxX));
 			seriesCollection.addSeries(apprser);
 			seriesCollection.addSeries(series);
-			JFreeChart chart = drawGraph(seriesCollection, "occupancy", "volume");
+			JFreeChart chart = drawGraph(seriesCollection, x, y);
 			ChartPanel chartPanel = new ChartPanel(chart);
 			chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 		    chartPanel.setBackground(Color.white);
-		    pDeps.removeAll();
-		    pDeps.add(chartPanel, BorderLayout.CENTER);
-			pDeps.validate();
+		    if (!f)
+		    {
+			    pDep2.removeAll();
+			    pDep2.setLayout(new BorderLayout(0, 0));
+			    pDep2.add(chartPanel);
+			    pDep2.validate();
+		    }
+		    else
+		    {
+			    pDep1.removeAll();
+			    pDep1.add(chartPanel, BorderLayout.CENTER);
+				pDep1.validate();
+		    }
 		}
 		dbInterface.disconnect();
 	}
@@ -507,21 +531,24 @@ public class MainWindow extends JFrame {
 		{
 		TimeSeriesCollection seriesCollection= new TimeSeriesCollection();
 		seriesCollection.addSeries(seriesT);
-		JFreeChart chart = drawGraphT(seriesCollection, "date", "occupancy");
+		JFreeChart chart = drawGraphT(seriesCollection, "time", "occupancy");
 		ChartPanel chartPanel = new ChartPanel(chart);
 		chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 	    chartPanel.setBackground(Color.white);
-	    pNormalDep.removeAll();
-	    pNormalDep.setLayout(new BorderLayout(0, 0));
-	    pNormalDep.add(chartPanel);
-	    pNormalDep.validate();
+	    pDep2.removeAll();
+	    pDep2.setLayout(new BorderLayout(0, 0));
+	    pDep2.add(chartPanel);
+	    pDep2.validate();
 		}
 	    dbInterface.disconnect();
 	}
 	
 	private void plot()
 	{
-		plotXY();
-		plotOT();
+		plotXY("occupancy","volume",true);
+		if (cmbbxChooseDependancy.getSelectedItem().toString()=="Occupancy(time)")
+			plotOT();
+		else
+			plotXY("speed","distance", false);
 	}
 }
