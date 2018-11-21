@@ -20,15 +20,20 @@ import javax.swing.JComboBox;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.sql.PreparedStatement;
 import java.sql.Date;
 
@@ -38,20 +43,19 @@ import courseWorkClient.common.ApproximationUnit;
 
 import javax.swing.JCheckBox;
 
-
 public class MainWindow extends JFrame {
 
 	private JPanel contentPane;
+	private JPanel pDeps;
+	private JPanel pNormalDep;
 	private JComboBox<String> cmbbxChooseLane;
 	private JComboBox<Date> cmbbxChooseDate;
 	private JComboBox<Integer> cmbbxChooseTimeFirst;
 	private JComboBox<Integer> cmbbxChooseTimeSecond;
-	private JPanel pDeps;
-	private JPanel pNormalDep;
-	private JCheckBox chckbxChooseTime;
 	private JComboBox<String> cmbbxChooseTimeOfDay;
 	private JComboBox<String> cmbbxChooseWeather;
-
+	private JComboBox<String> cmbbxChooseDependancy;
+	private JCheckBox chckbxChooseTime;
 
 	public static void main(String[] args)
 	{
@@ -96,40 +100,44 @@ public class MainWindow extends JFrame {
 		cmbbxChooseTimeSecond = new JComboBox<Integer>();
 		cmbbxChooseTimeOfDay = new JComboBox<String>();
 		cmbbxChooseWeather = new JComboBox<String>();
-
+		cmbbxChooseDependancy = new JComboBox<String>();
+		
 		fillComboBoxes();
 
 		cmbbxChooseTimeFirst.setEnabled(false);
 		cmbbxChooseTimeSecond.setEnabled(false);
 		chckbxChooseTime = new JCheckBox("Choose time");
-		
 
 		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addGroup(gl_contentPane.createSequentialGroup()
 					.addGap(27)
-					.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING)
-						.addComponent(pNormalDep, GroupLayout.DEFAULT_SIZE, 812, Short.MAX_VALUE)
+					.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
 						.addGroup(gl_contentPane.createSequentialGroup()
-							.addGroup(gl_contentPane.createParallelGroup(Alignment.LEADING)
+							.addComponent(cmbbxChooseDependancy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(cmbbxChooseLane, GroupLayout.PREFERRED_SIZE, 126, GroupLayout.PREFERRED_SIZE)
+							.addGap(10)
+							.addComponent(cmbbxChooseDate, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(cmbbxChooseTimeFirst, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
+							.addGap(12)
+							.addComponent(cmbbxChooseTimeSecond, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(chckbxChooseTime)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(cmbbxChooseTimeOfDay, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(cmbbxChooseWeather, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addContainerGap())
+						.addGroup(gl_contentPane.createSequentialGroup()
+							.addGroup(gl_contentPane.createParallelGroup(Alignment.TRAILING)
+								.addComponent(pNormalDep, GroupLayout.DEFAULT_SIZE, 812, Short.MAX_VALUE)
 								.addGroup(gl_contentPane.createSequentialGroup()
-									.addComponent(cmbbxChooseLane, GroupLayout.PREFERRED_SIZE, 126, GroupLayout.PREFERRED_SIZE)
-									.addGap(10)
-									.addComponent(cmbbxChooseDate, GroupLayout.PREFERRED_SIZE, 102, GroupLayout.PREFERRED_SIZE)
-									.addPreferredGap(ComponentPlacement.RELATED)
-									.addComponent(cmbbxChooseTimeFirst, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
-									.addGap(12)
-									.addComponent(cmbbxChooseTimeSecond, GroupLayout.PREFERRED_SIZE, 61, GroupLayout.PREFERRED_SIZE)
-									.addPreferredGap(ComponentPlacement.RELATED)
-									.addComponent(chckbxChooseTime)
-									.addPreferredGap(ComponentPlacement.UNRELATED)
-									.addComponent(cmbbxChooseTimeOfDay, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-									.addPreferredGap(ComponentPlacement.UNRELATED)
-									.addComponent(cmbbxChooseWeather, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-								.addComponent(pDeps, GroupLayout.DEFAULT_SIZE, 811, Short.MAX_VALUE))
-							.addGap(1)))
-					.addGap(37))
+									.addComponent(pDeps, GroupLayout.DEFAULT_SIZE, 811, Short.MAX_VALUE)
+									.addGap(1)))
+							.addGap(37))))
 		);
 		gl_contentPane.setVerticalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
@@ -142,7 +150,8 @@ public class MainWindow extends JFrame {
 						.addComponent(chckbxChooseTime)
 						.addComponent(cmbbxChooseTimeSecond, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 						.addComponent(cmbbxChooseTimeOfDay, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-						.addComponent(cmbbxChooseWeather, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(cmbbxChooseWeather, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(cmbbxChooseDependancy, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addGap(18)
 					.addComponent(pDeps, GroupLayout.DEFAULT_SIZE, 337, Short.MAX_VALUE)
 					.addGap(18)
@@ -153,7 +162,6 @@ public class MainWindow extends JFrame {
 		contentPane.setLayout(gl_contentPane);
 		
 		plot();
-
 	}
 
 	//*Initialize events for a frame**
@@ -173,17 +181,16 @@ public class MainWindow extends JFrame {
 		
 		cmbbxChooseTimeOfDay.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day"){plot();}
+				plot();
 			}
 		});
 		
 		cmbbxChooseWeather.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (cmbbxChooseWeather.getSelectedItem().toString() != "Any weather"){plot();}
+				plot();
 			}
 		});
 		
-
 		chckbxChooseTime.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (cmbbxChooseTimeFirst.isEnabled() == true)
@@ -198,7 +205,6 @@ public class MainWindow extends JFrame {
 				}
 			}
 		});
-
 	}
 
 	//*Method that fills all combo boxes**
@@ -266,19 +272,34 @@ public class MainWindow extends JFrame {
 			{
 				sql_query+= " AND HOUR(lane.date) BETWEEN ? AND ? ";
 			}
+			if (x == "date")
+			{
+				sql_query+=" AND MINUTE(date)%10 = 0";
+			}
 			return sql_query;
 		}
 		else
 		{
 			sql_query = "SELECT " + x + " , " + y + " FROM coursework.lane WHERE name = ?";
 			if (cmbbxChooseDate.getSelectedItem().toString() == "All")
+			{
+				if (x == "date")
+				{
+					sql_query+=" AND MINUTE(date)%10 = 0 ";
+				}
 				return sql_query;
+			}
+				
 			else
 			{
 				sql_query+= " AND CONVERT(lane.date, DATE) = ?";
 				if (chckbxChooseTime.isSelected())
 				{
 					sql_query+= " AND HOUR(lane.date) BETWEEN ? AND ? ";
+				}
+				if (x == "date")
+				{
+					sql_query+=" AND MINUTE(date)%10 = 0 ";
 				}
 				return sql_query;
 			}
@@ -314,9 +335,41 @@ public class MainWindow extends JFrame {
 
 		return chart;
 	}
+	
+	private JFreeChart drawGraphT(XYDataset dataset, String xAxis, String yAxis)
+	{
+		JFreeChart chart = ChartFactory.createTimeSeriesChart(
+                "",
+                xAxis,
+                yAxis,
+                dataset
+        );
+		XYPlot plot = chart.getXYPlot();
+
+		XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
+        renderer.setSeriesPaint(0, Color.BLUE);
+        renderer.setSeriesPaint(1, Color.RED);
+        renderer.setSeriesStroke(1, new BasicStroke(1.0f));
+        renderer.setSeriesLinesVisible(1, false);
+        plot.setRenderer(renderer);
+        plot.setBackgroundPaint(Color.white);
+
+        plot.setRangeGridlinesVisible(true);
+        plot.setRangeGridlinePaint(Color.BLACK);
+
+        plot.setDomainGridlinesVisible(true);
+        plot.setDomainGridlinePaint(Color.BLACK);
+
+        chart.getLegend().setFrame(BlockBorder.NONE);
+        
+        DateAxis axis = (DateAxis) plot.getDomainAxis();
+        axis.setDateFormatOverride(new SimpleDateFormat("dd-MMM-yyyy HH:mm"));
+
+		return chart;
+	}
 
 	//*Method that executes sql query and creates dataset from resultset**
-	private XYSeries getDataSet(String sql, DataBaseInterface dbInterface)
+	private XYSeries getDataSetXY(String sql, DataBaseInterface dbInterface)
 	{
 		XYSeries series = new XYSeries("Dependency");
 		byte i = 3;
@@ -366,16 +419,55 @@ public class MainWindow extends JFrame {
 		return series;
 	}	
 	
+	private TimeSeries getDataSetT(String sql, DataBaseInterface dbInterface)
+	{
+		TimeSeries seriesT = new TimeSeries("Dependency");
+		byte i = 3;
+		try
+		{
+			PreparedStatement pstmt = dbInterface.connect().prepareStatement(sql);
+			pstmt.setString(1, cmbbxChooseLane.getSelectedItem().toString());
+			pstmt.setString(2, cmbbxChooseDate.getSelectedItem().toString());
+			if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day")
+			{
+				pstmt.setString(i, cmbbxChooseTimeOfDay.getSelectedItem().toString());
+				i++;
+			}
+			if (cmbbxChooseWeather.getSelectedItem().toString() != "Any weather")
+			{
+				pstmt.setString(i, cmbbxChooseWeather.getSelectedItem().toString());
+				i++;
+			}
+			if (chckbxChooseTime.isSelected()==true)
+			{
+				pstmt.setString(i, cmbbxChooseTimeFirst.getSelectedItem().toString());
+				i++;
+				pstmt.setString(i, cmbbxChooseTimeSecond.getSelectedItem().toString());
+			}
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next())
+			{
+				seriesT.add(new Millisecond(rs.getTimestamp(1)), rs.getFloat(2));
+			}
+			pstmt.close();
+		}
+		catch(SQLException ex)
+		{
+			ex.printStackTrace();
+		}
+		return seriesT;
+	}	
+	
 	private double countApprPoint(double[] mult, double a)
 	{
 		return mult[2]*a*a+mult[1]*a+mult[0];
 	}
 	
-	private void plot()
+	private void plotXY()
 	{
 		DataBaseInterface dbInterface = new DataBaseInterface();
 		String sql = buildSqlQuery("occupancy","volume");
-		XYSeries series = getDataSet(sql, dbInterface);
+		XYSeries series = getDataSetXY(sql, dbInterface);
 		if (!series.isEmpty())
 		{
 			XYSeriesCollection seriesCollection= new XYSeriesCollection();
@@ -393,10 +485,8 @@ public class MainWindow extends JFrame {
 				apprser.add(i, countApprPoint(polinom, i));
 			}
 			apprser.add(maxX, countApprPoint(polinom, maxX));
-			
 			seriesCollection.addSeries(apprser);
 			seriesCollection.addSeries(series);
-			
 			JFreeChart chart = drawGraph(seriesCollection, "occupancy", "volume");
 			ChartPanel chartPanel = new ChartPanel(chart);
 			chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
@@ -406,5 +496,32 @@ public class MainWindow extends JFrame {
 			pDeps.validate();
 		}
 		dbInterface.disconnect();
+	}
+	
+	private void plotOT()
+	{
+		DataBaseInterface dbInterface = new DataBaseInterface();
+		String sql = buildSqlQuery("lane.date", "occupancy");
+		TimeSeries seriesT = getDataSetT(sql, dbInterface);
+		if (!seriesT.isEmpty())
+		{
+		TimeSeriesCollection seriesCollection= new TimeSeriesCollection();
+		seriesCollection.addSeries(seriesT);
+		JFreeChart chart = drawGraphT(seriesCollection, "date", "occupancy");
+		ChartPanel chartPanel = new ChartPanel(chart);
+		chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+	    chartPanel.setBackground(Color.white);
+	    pNormalDep.removeAll();
+	    pNormalDep.setLayout(new BorderLayout(0, 0));
+	    pNormalDep.add(chartPanel);
+	    pNormalDep.validate();
+		}
+	    dbInterface.disconnect();
+	}
+	
+	private void plot()
+	{
+		plotXY();
+		plotOT();
 	}
 }
