@@ -27,13 +27,17 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+
 import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.sql.PreparedStatement;
 import java.sql.Date;
 
@@ -271,7 +275,7 @@ public class MainWindow extends JFrame {
 		String sql_query;
 		if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day" || cmbbxChooseWeather.getSelectedItem().toString() != "Any weather")
 		{
-			sql_query = "SELECT " + x + " , " + y + " FROM lane INNER JOIN weather ON CONVERT(lane.date, DATE) = CONVERT(weather.date,DATE) AND hour(lane.date) = hour(weather.date) WHERE name = ? AND CONVERT(lane.date, DATE) = ? ";
+			sql_query = "SELECT " + x + " , " + y + " FROM lane INNER JOIN weather ON CONVERT(lane.date, DATE) = CONVERT(weather.date,DATE) AND hour(lane.date) = hour(weather.date) WHERE name = ? AND CONVERT(lane.date, DATE) = ? ORDER BY " + x;
 			if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day")
 				sql_query+="AND timeOfDay = ? ";
 			if (cmbbxChooseWeather.getSelectedItem().toString() != "Any weather")
@@ -289,17 +293,11 @@ public class MainWindow extends JFrame {
 		else
 		{
 			sql_query = "SELECT " + x + " , " + y + " FROM coursework.lane WHERE name = ?";
-			if (cmbbxChooseDate.getSelectedItem().toString() == "All")
-			{
-				if (x == "date")
+				if (x == "lane.date")
 				{
 					sql_query+=" AND MINUTE(date)%10 = 0 ";
 				}
-				return sql_query;
-			}
-				
-			else
-			{
+
 				sql_query+= " AND CONVERT(lane.date, DATE) = ?";
 				if (chckbxChooseTime.isSelected())
 				{
@@ -309,8 +307,7 @@ public class MainWindow extends JFrame {
 				{
 					sql_query+=" AND MINUTE(date)%10 = 0 ";
 				}
-				return sql_query;
-			}
+			return sql_query;
 		}
 	}
 	
@@ -487,6 +484,14 @@ public class MainWindow extends JFrame {
 			XYSeriesCollection seriesCollection= new XYSeriesCollection();
 			ApproximationUnit au = new ApproximationUnit();
 			double[] polinom = au.LeastSquares(series.toArray(),3,series.getItemCount());
+			ArrayList<Float> mX = new ArrayList<Float>();
+			ArrayList<Float> mY = new ArrayList<Float>();
+			for (int i = 0 ; i<series.getItemCount(); i++)
+			{
+				
+				mX.add(series.getX(i).floatValue());
+				mY.add(series.getY(i).floatValue());
+			}
 			
 			XYSeries apprser = new XYSeries("approximation");
 			
@@ -500,6 +505,7 @@ public class MainWindow extends JFrame {
 			}
 			apprser.add(maxX, countApprPoint(polinom, maxX));
 			seriesCollection.addSeries(apprser);
+			
 			seriesCollection.addSeries(series);
 			JFreeChart chart = drawGraph(seriesCollection, x, y);
 			ChartPanel chartPanel = new ChartPanel(chart);
@@ -529,16 +535,46 @@ public class MainWindow extends JFrame {
 		TimeSeries seriesT = getDataSetT(sql, dbInterface);
 		if (!seriesT.isEmpty())
 		{
-		TimeSeriesCollection seriesCollection= new TimeSeriesCollection();
-		seriesCollection.addSeries(seriesT);
-		JFreeChart chart = drawGraphT(seriesCollection, "time", "occupancy");
-		ChartPanel chartPanel = new ChartPanel(chart);
-		chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-	    chartPanel.setBackground(Color.white);
-	    pDep2.removeAll();
-	    pDep2.setLayout(new BorderLayout(0, 0));
-	    pDep2.add(chartPanel);
-	    pDep2.validate();
+			TimeSeriesCollection seriesCollection= new TimeSeriesCollection();
+			
+			ApproximationUnit au = new ApproximationUnit();
+			XYSeries seriesSub = new XYSeries("sub");
+			for (int i = 0, t = 0; i<seriesT.getItemCount(); i++, t+=10)
+				seriesSub.add(t, seriesT.getValue(i));
+			
+			double[] polinom = au.LeastSquares(seriesSub.toArray(),3,seriesSub.getItemCount());
+			ArrayList<Float> mX = new ArrayList<Float>();
+			ArrayList<Float> mY = new ArrayList<Float>();
+			for (int i = 0 ; i<seriesSub.getItemCount(); i++)
+			{
+				
+				mX.add(seriesSub.getX(i).floatValue());
+				mY.add(seriesSub.getY(i).floatValue());
+			}
+			TimeSeries apprser = new TimeSeries ("approximation");
+			int minX = (int)seriesSub.getMinX(), 
+					maxX = (int)seriesSub.getMaxX(),
+					step = (maxX-minX)/10;
+			
+			
+			long uTime = seriesT.getTimePeriod(0).getFirstMillisecond();
+			Date time = new Date(uTime+minX*60*1000);
+			apprser.add(new Millisecond(time),countApprPoint(polinom, minX));
+			for(int i = minX + step;i<maxX;i+=step) 
+			{
+				apprser.add(new Millisecond(new Date(uTime+i*60*1000)), countApprPoint(polinom, i));
+			}
+			apprser.add(new Millisecond(new Date(uTime+maxX*60*1000)), countApprPoint(polinom, maxX));
+			seriesCollection.addSeries(apprser);
+			seriesCollection.addSeries(seriesT);
+			JFreeChart chart = drawGraphT(seriesCollection, "time", "occupancy");
+			ChartPanel chartPanel = new ChartPanel(chart);
+			chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+			chartPanel.setBackground(Color.white);
+			pDep2.removeAll();
+			pDep2.setLayout(new BorderLayout(0, 0));
+			pDep2.add(chartPanel);
+	    	pDep2.validate();
 		}
 	    dbInterface.disconnect();
 	}
