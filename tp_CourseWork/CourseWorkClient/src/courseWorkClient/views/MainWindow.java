@@ -29,7 +29,6 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import org.jfree.data.time.Millisecond;
-import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 
@@ -37,7 +36,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
 import java.sql.PreparedStatement;
 import java.sql.Date;
 
@@ -275,7 +273,7 @@ public class MainWindow extends JFrame {
 		String sql_query;
 		if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day" || cmbbxChooseWeather.getSelectedItem().toString() != "Any weather")
 		{
-			sql_query = "SELECT " + x + " , " + y + " FROM lane INNER JOIN weather ON CONVERT(lane.date, DATE) = CONVERT(weather.date,DATE) AND hour(lane.date) = hour(weather.date) WHERE name = ? AND CONVERT(lane.date, DATE) = ? ORDER BY " + x;
+			sql_query = "SELECT " + x + " , " + y + " FROM lane INNER JOIN weather ON CONVERT(lane.date, DATE) = CONVERT(weather.date,DATE) AND hour(lane.date) = hour(weather.date) WHERE name = ? AND CONVERT(lane.date, DATE) = ?";
 			if (cmbbxChooseTimeOfDay.getSelectedItem().toString() != "All day")
 				sql_query+="AND timeOfDay = ? ";
 			if (cmbbxChooseWeather.getSelectedItem().toString() != "Any weather")
@@ -288,6 +286,7 @@ public class MainWindow extends JFrame {
 			{
 				sql_query+=" AND MINUTE(date)%10 = 0";
 			}
+			sql_query += "ORDER BY " + x;
 			return sql_query;
 		}
 		else
